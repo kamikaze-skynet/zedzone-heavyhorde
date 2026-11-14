@@ -1,7 +1,7 @@
 {
     "name": "Heavy Horde",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "author": "girthy_mods",
-    "description": "More zombies, bigger ambushes, and Mutated, Brute and Behemoth zombies tough enough to take Boltgun hits. Host-side, works in co-op.",
+    "description": "More zombies, bigger ambushes, armoured Chargers, and Mutated, Brute and Behemoth zombies tough enough to take Boltgun hits. Host-side, works in co-op.",
     "enabled": true
 }

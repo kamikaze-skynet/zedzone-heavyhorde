@@ -18,12 +18,13 @@ namespace HeavyHorde
         static readonly Dictionary<IntPtr, Window> _windows = new Dictionary<IntPtr, Window>();
 
         // Prefix on BasicCharacterController.OnHit (ZombieController.OnHit calls it first).
-        internal static void CapDamage(BasicCharacterController c, ref float damage)
+        internal static void CapDamage(BasicCharacterController c, ref float damage, Vector2 force)
         {
             if (damage <= 0f || c == null || !Settings.Enabled.Value) return;
             Tier tier = Elites.TierOf(c);
             if (tier < Tier.Brute) return;
             if (!NetSim.isSimulationAuthority) return;
+            if (tier == Tier.Charger) Charger.FrontArmor(c, ref damage, force);
             var s = Elites.SettingsOf(tier);
             float cap = s.MaxDamagePerHit.Value;
             if (cap <= 0f) return;

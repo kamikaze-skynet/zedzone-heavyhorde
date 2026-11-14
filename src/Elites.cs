@@ -8,7 +8,7 @@ using ZedZone.Net;
 
 namespace HeavyHorde
 {
-    internal enum Tier { None = 0, Mutated = 1, Brute = 2, Behemoth = 3 }
+    internal enum Tier { None = 0, Mutated = 1, Brute = 2, Behemoth = 3, Charger = 4 }
 
     // Rolls tougher variants when a zombie is created, on the host only.
     //
@@ -36,7 +36,7 @@ namespace HeavyHorde
         [ThreadStatic] internal static int AmbushDepth;
 
         static readonly System.Random _rng = new System.Random();
-        internal static int Rolled, MadeMutated, MadeBrute, MadeBehemoth;
+        internal static int Rolled, MadeMutated, MadeBrute, MadeBehemoth, MadeCharger;
 
         internal static Tier TierOf(BasicCharacterController c)
         {
@@ -49,6 +49,7 @@ namespace HeavyHorde
             Tier.Mutated => Settings.Mutated,
             Tier.Brute => Settings.Brute,
             Tier.Behemoth => Settings.Behemoth,
+            Tier.Charger => Settings.ChargerTier,
             _ => null,
         };
 
@@ -57,6 +58,7 @@ namespace HeavyHorde
         {
             if (c == null) return;
             _tiers.Remove(c.Pointer);
+            Charger.Forget(c.Pointer);
             if (!Settings.Enabled.Value) return;
             if (c.isPlayer) return;
             if (c.TryCast<ZombieController>() == null) return;  // only infected; no bosses, animals, people or pets
@@ -69,8 +71,11 @@ namespace HeavyHorde
             if (string.IsNullOrEmpty(mine) && NetSim.isSimulationAuthority)
                 mine = Roll(c, cd, attr);
 
-            if (!string.IsNullOrEmpty(mine) && int.TryParse(mine, out int t) && t > 0 && t <= 3)
+            if (!string.IsNullOrEmpty(mine) && int.TryParse(mine, out int t) && t > 0 && t <= 4)
+            {
                 _tiers[c.Pointer] = (Tier)t;
+                if ((Tier)t == Tier.Charger) Charger.Register(c);
+            }
         }
 
         static string Roll(BasicCharacterController c, CharacterData cd, MonsterAttr attr)
@@ -90,9 +95,11 @@ namespace HeavyHorde
             float pB = Settings.Behemoth.Chance.Value * bonus;
             float pR = Settings.Brute.Chance.Value * bonus;
             float pM = Settings.Mutated.Chance.Value * bonus;
-            if (r < pB) tier = Tier.Behemoth;
-            else if (r < pB + pR) tier = Tier.Brute;
-            else if (r < pB + pR + pM) tier = Tier.Mutated;
+            float pC = Settings.ChargerTier.Chance.Value * bonus;
+            if ((r -= pC) < 0) tier = Tier.Charger;
+            else if ((r -= pB) < 0) tier = Tier.Behemoth;
+            else if ((r -= pR) < 0) tier = Tier.Brute;
+            else if ((r -= pM) < 0) tier = Tier.Mutated;
 
             try
             {
@@ -101,6 +108,7 @@ namespace HeavyHorde
                     case Tier.Mutated: WriteMutation(cd, Settings.Mutated); MadeMutated++; break;
                     case Tier.Brute: WriteMutation(cd, Settings.Brute); MadeBrute++; break;
                     case Tier.Behemoth: WriteHordeElite(cd, Settings.Behemoth); MadeBehemoth++; break;
+                    case Tier.Charger: WriteMutation(cd, Settings.ChargerTier); MadeCharger++; break;
                 }
             }
             catch (Exception e)

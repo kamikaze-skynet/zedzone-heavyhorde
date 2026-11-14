@@ -12,10 +12,12 @@ namespace HeavyHorde
             Patch(h, typeof(BasicCharacterController), nameof(BasicCharacterController.OnHit), nameof(OnHit_Pre));
             Patch(h, typeof(ZombieController), nameof(ZombieController.OnExplosionDismember), nameof(ExplosionDismember_Pre));
             Patch(h, typeof(ZombieController), nameof(ZombieController.TryDismemberOnHit), nameof(TryDismember_Pre));
+            Patch(h, typeof(ZombieController), nameof(ZombieController.MutationDashAttack), nameof(Dash_Pre));
+            Patch(h, typeof(ZombieController), nameof(ZombieController.ExecuteDashContactDamage), null, postfix: nameof(DashContact_Post));
             Patch(h, typeof(DirectorController), nameof(DirectorController.ExecuteZombieAmbush), nameof(Ambush_Pre), finalizer: nameof(Ambush_Fin));
         }
 
-        static void Patch(Harmony h, Type t, string method, string prefix, string finalizer = null)
+        static void Patch(Harmony h, Type t, string method, string prefix, string finalizer = null, string postfix = null)
         {
             try
             {
@@ -23,7 +25,8 @@ namespace HeavyHorde
                 if (target == null) { HLog.Warn($"{t.Name}.{method} not found - that part of the mod is off."); return; }
                 var self = typeof(Patches);
                 h.Patch(target,
-                    prefix: new HarmonyMethod(self.GetMethod(prefix, BindingFlags.Static | BindingFlags.NonPublic)),
+                    prefix: prefix == null ? null : new HarmonyMethod(self.GetMethod(prefix, BindingFlags.Static | BindingFlags.NonPublic)),
+                    postfix: postfix == null ? null : new HarmonyMethod(self.GetMethod(postfix, BindingFlags.Static | BindingFlags.NonPublic)),
                     finalizer: finalizer == null ? null : new HarmonyMethod(self.GetMethod(finalizer, BindingFlags.Static | BindingFlags.NonPublic)));
                 HLog.Debug($"Patched {t.Name}.{method}");
             }
@@ -36,9 +39,9 @@ namespace HeavyHorde
             catch (Exception e) { HLog.Error("Elite roll failed", e); }
         }
 
-        static void OnHit_Pre(BasicCharacterController __instance, ref float m_damage)
+        static void OnHit_Pre(BasicCharacterController __instance, ref float m_damage, UnityEngine.Vector2 m_force)
         {
-            try { Toughness.CapDamage(__instance, ref m_damage); }
+            try { Toughness.CapDamage(__instance, ref m_damage, m_force); }
             catch (Exception e) { HLog.Error("Damage cap failed", e); }
         }
 
@@ -53,6 +56,16 @@ namespace HeavyHorde
             if (died) return true;
             try { return Toughness.AllowDismember(__instance); }
             catch { return true; }
+        }
+
+        static void Dash_Pre(ZombieController __instance)
+        {
+            try { Charger.OnDashStart(__instance); } catch { }
+        }
+
+        static void DashContact_Post(ZombieController __instance, Il2CppSystem.Collections.Generic.HashSet<BasicCharacterController> hitted)
+        {
+            try { Charger.OnDashContact(__instance, hitted); } catch { }
         }
 
         static void Ambush_Pre(ref int minCount, ref int maxCount, ref bool preferTough)

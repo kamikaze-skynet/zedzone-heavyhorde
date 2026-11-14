@@ -8,6 +8,9 @@ More zombies, and tougher ones. Made so fights stay dangerous even with the Bolt
 [*][b]Behemoth[/b] (1%): giants with a boss health bar. About 7 Boltgun bolts.
 [/list]
 
+[h2]New enemy: the Charger[/h2]
+A zombie in welded scrap-metal armour. Shots from the front glance off, so get to its side or back. It charges in a straight line and slams through anything in its way, and if it misses you it trips and falls. That's your chance.
+
 [h2]More zombies[/h2]
 [list]
 [*]Bigger zombie groups in newly explored areas.

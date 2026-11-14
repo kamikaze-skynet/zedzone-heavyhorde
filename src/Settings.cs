@@ -36,6 +36,10 @@ namespace HeavyHorde
         internal static ConfigEntry<float> DirectorIntervalMultiplier;
         internal static ConfigEntry<float> DirectorAgentsMultiplier;
 
+        internal static TierSettings ChargerTier = new TierSettings();
+        internal static ConfigEntry<float> ChargerFrontDamageTaken, ChargerFrontArc, ChargerDashSpeed, ChargerDashDuration, ChargerDashRange, ChargerStumbleSeconds;
+        internal static ConfigEntry<bool> ChargerArmorArt, ChargerArmorUseGameMaterial;
+
         internal static ConfigEntry<bool> Hunts;
         internal static ConfigEntry<float> HuntIntervalMinutes;
         internal static ConfigEntry<int> HuntMinCount;
@@ -62,6 +66,19 @@ namespace HeavyHorde
             BindTier(c, "Behemoth", Behemoth,
                 chance: 0.01f, hp: 20f, armor: 0f, dmg: 1.5f, spd: 0f, atk: 0f, regen: 0f, scale: 1.45f, cap: 0.15f, resist: true,
                 what: "Very rare giant with a boss health bar (the game's own horde elite). Needs about 7 bolts.");
+
+            // ---- Charger: new enemy type
+            BindTier(c, "Charger", ChargerTier,
+                chance: 0.04f, hp: 4f, armor: 0f, dmg: 0.6f, spd: 0f, atk: 0f, regen: 0f, scale: 0f, cap: 0.3f, resist: true,
+                what: "Armoured Charger: scrap-metal plates, rushes in a straight line and knocks into everything in its path. Shots from the front glance off; flank it or hit its back. If its charge misses you, it stumbles and falls.");
+            ChargerFrontDamageTaken = c.Bind("Charger", "FrontDamageTaken", 0.15f, R("Share of damage that gets through its front armour (0.15 = 15%).", 0, 1));
+            ChargerFrontArc = c.Bind("Charger", "FrontArc", 120f, R("Width (degrees) of the armoured front.", 10, 360));
+            ChargerDashSpeed = c.Bind("Charger", "DashSpeedMultiplier", 1.6f, R("Charge speed compared with the game's mutant dash.", 0.2f, 5));
+            ChargerDashDuration = c.Bind("Charger", "DashDurationMultiplier", 1.4f, R("Charge length compared with the game's mutant dash.", 0.2f, 5));
+            ChargerDashRange = c.Bind("Charger", "DashRangeMultiplier", 1.5f, R("How far away it starts a charge, compared with the game's mutant dash.", 0.2f, 5));
+            ChargerStumbleSeconds = c.Bind("Charger", "StumbleSeconds", 2.5f, R("Seconds it lies on the ground after a charge that hit no player. 0 = never stumbles.", 0, 10));
+            ChargerArmorArt = c.Bind("Charger", "ArmorArt", true, "Draw the armour plates on its body.");
+            ChargerArmorUseGameMaterial = c.Bind("Charger", "ArmorUsesGameLighting", true, "Draw the plates with the body part's own material (follows the game's lighting). Turn off if the plates look wrong.");
 
             AmbushEliteBonus = c.Bind("Elites", "AmbushEliteBonus", 2f, R("Elite chances are multiplied by this for zombies that arrive in ambushes and hunts.", 0, 20));
             HitWindow = c.Bind("Elites", "HitWindow", 0.2f, R("Seconds that count as one hit for MaxDamagePerHit. A Boltgun bolt's impact, internal charge and blast land within about 0.05 s, so they count as one hit.", 0.02f, 2));
