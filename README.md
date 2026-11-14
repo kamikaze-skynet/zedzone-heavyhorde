@@ -12,6 +12,14 @@ A ZED ZONE mod (BepInEx IL2CPP) that adds more zombies and tougher ones, so figh
 | Brute | 5% | 6x health, armour, +80% damage, regenerates when left alone, can't have its limbs blown off while alive. **One hit can take at most 40% of its health**, so it needs about 3 Boltgun bolts. |
 | Behemoth | 1% | Giant (1.45x size), boss health bar, 20x health, 2.5x damage. One hit takes at most 15%, so about 7 bolts. |
 
+**New enemy: the Charger (4%).** A zombie in welded scrap-metal armour (plates drawn on its body, so it still animates and ragdolls like any zombie). 4x health.
+- Shots from the front glance off (15% gets through). Get to its side or back.
+- It rushes you in a straight line and slams into everything in its path.
+- If the charge misses every player, it stumbles and falls for 2.5 s. That's your opening.
+- One hit can take at most 30% of its health.
+
+The art is in `art/` (made by `art/make_charger_art.py`); swap the PNGs' pixels and rerun the script to restyle it.
+
 The variants use the game's own mutation and horde-elite systems, so they look and behave like the game's own special zombies.
 
 **More zombies.**
@@ -27,7 +35,7 @@ A Boltgun bolt does about 3,750 damage (impact, internal charge and blast). Heal
 
 ## Co-op
 
-Only the host needs the mod for it to work: the host spawns zombies and owns their health, and a zombie's variant travels to guests with the zombie itself, so guests see the glow, size and boss bar. Guests should still install it so the dismember protection matches. The host's config is the one that counts.
+Only the host needs the mod for it to work: the host spawns zombies and owns their health, and a zombie's variant travels to guests with the zombie itself, so guests see the glow, size and boss bar. Guests need the mod to see the Charger's armour plates (without it they see a glowing mutant). Guests should still install it so the dismember protection matches. The host's config is the one that counts.
 
 ## Install
 

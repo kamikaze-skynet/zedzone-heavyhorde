@@ -11,7 +11,7 @@ namespace HeavyHorde
     public class Plugin : BasePlugin
     {
         public const string Guid = "girthy_mods.zedzone.heavyhorde";
-        public const string Version = "0.1.0";
+        public const string Version = "0.2.0";
 
         public override void Load()
         {
@@ -41,6 +41,13 @@ namespace HeavyHorde
         public HordeBehaviour(IntPtr ptr) : base(ptr) { }
         float _next, _nextStats;
 
+        void LateUpdate()
+        {
+            try { SpriteDump.Tick(); } catch { }
+            try { Charger.Tick(); }
+            catch (Exception e) { HLog.Error("Charger tick failed", e); }
+        }
+
         void Update()
         {
             if (Time.unscaledTime < _next) return;
@@ -52,7 +59,7 @@ namespace HeavyHorde
             {
                 _nextStats = Time.unscaledTime + 300f;
                 if (Elites.Rolled > 0)
-                    HLog.Info($"So far: {Elites.Rolled} zombies rolled, {Elites.MadeMutated} Mutated, {Elites.MadeBrute} Brutes, {Elites.MadeBehemoth} Behemoths.");
+                    HLog.Info($"So far: {Elites.Rolled} zombies rolled, {Elites.MadeMutated} Mutated, {Elites.MadeBrute} Brutes, {Elites.MadeBehemoth} Behemoths, {Elites.MadeCharger} Chargers.");
             }
         }
     }
