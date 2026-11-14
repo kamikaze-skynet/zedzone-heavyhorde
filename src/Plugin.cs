@@ -43,6 +43,7 @@ namespace HeavyHorde
 
         void LateUpdate()
         {
+            try { SpriteDump.Tick(); } catch { }
             try { Charger.Tick(); }
             catch (Exception e) { HLog.Error("Charger tick failed", e); }
         }

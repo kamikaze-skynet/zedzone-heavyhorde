@@ -78,6 +78,31 @@ def weld(p, w, h, pts):
 def mask_of(w, h, draw):
     m = Image.new('L', (w, h), 0); draw(ImageDraw.Draw(m)); return m
 
+def horns(im, w, h):
+    # ram horns: thick at the root, curling out, down and forward, with growth ridges
+    d = ImageDraw.Draw(im)
+    for side in (-1, 1):
+        ox, oy = w/2 + side*12, 15            # root on the helmet's upper side
+        cx, cy = ox + side*9, oy + 3          # curl centre
+        pts = []
+        N = 40
+        for k in range(N):
+            t = k/(N-1)
+            ang = math.radians(160 - 330*t)   # sweep up, out, down and back in
+            r = 10*(1 - 0.55*t)
+            x = cx + side*math.cos(ang)*r*-1
+            y = cy - math.sin(ang)*r
+            pts.append((x, y, 5.2*(1 - 0.75*t) + 0.8))
+        for (x, y, th) in pts:
+            d.ellipse((x-th-1, y-th-1, x+th+1, y+th+1), fill=(14,14,16))
+        for i, (x, y, th) in enumerate(pts):
+            ridge = (i % 5 == 0)
+            base = [(170,156,126),(140,126,100),(110,98,76),(84,74,58)]
+            col = base[3] if ridge else base[min(2, int(i/len(pts)*3))]
+            d.ellipse((x-th, y-th, x+th, y+th), fill=col)
+            if not ridge and th > 1.5: d.ellipse((x-th*0.7, y-th, x-th*0.1, y-th*0.4), fill=(210,198,170))
+    return im
+
 def helmet():
     w, h = 44, 46
     m = mask_of(w, h, lambda d: (d.ellipse((3, 2, w-4, 40), fill=255), d.rectangle((5, 22, w-6, h-3), fill=255),
@@ -101,7 +126,13 @@ def helmet():
         for y in (8, 31, h-7): rivet(p, x, y, w, h)
     rust_patch(p, w, h, 34, 10, 4); rust_patch(p, w, h, 10, 38, 3)
     dent(p, w, h, 15, 9); dent(p, w, h, 30, 13)
-    return im
+    # glowing cracks spreading from the visor
+    for (x, y) in ((10, 26), (11, 27), (33, 26), (34, 27), (35, 28)):
+        if p[x, y][3]: p[x, y] = RED[1] + (255,)
+    big = Image.new('RGBA', (w + 24, h + 4), (0,0,0,0))
+    horns(big, w + 24, h + 4)
+    big.alpha_composite(im, (12, 4))
+    return big
 
 def chest():
     w, h = 52, 62
@@ -133,6 +164,14 @@ def chest():
         rivet(p, x, y, w, h)
     rust_patch(p, w, h, 14, 44, 5); rust_patch(p, w, h, 38, 28, 4); rust_patch(p, w, h, 30, 52, 3)
     for c in ((12, 36), (40, 46), (20, 52), (33, 9)): dent(p, w, h, *c)
+    # furnace grille in the prow: the thing is running hot inside
+    gx, gy = w//2 - 6, 34
+    d.rectangle((gx, gy, gx+12, gy+8), fill=(10,8,8), outline=(14,14,16))
+    for i in range(gx+1, gx+12, 3):
+        for j in range(gy+1, gy+8):
+            p[i, j] = (RED[2] if j > gy+3 else RED[1]) + (255,)
+            if i+1 < gx+12: p[i+1, j] = (RED[0]) + (255,)
+    d.rectangle((gx-1, gy-1, gx+13, gy+9), outline=STEEL[5])
     # blood smear
     for _ in range(18):
         x, y = random.randint(28, 44), random.randint(40, 50)

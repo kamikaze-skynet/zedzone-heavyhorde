@@ -66,6 +66,7 @@ namespace HeavyHorde
             if (attr == null || attr.isAnimal || attr.monsterSpeciesType != MonsterSpeciesType.Zombie) return;
             var cd = c.characterData;
             if (cd == null) return;
+            SpriteDump.Queue(c.TryCast<ZombieController>());
 
             string mine = cd.GetProperty(Key);
             if (string.IsNullOrEmpty(mine) && NetSim.isSimulationAuthority)
