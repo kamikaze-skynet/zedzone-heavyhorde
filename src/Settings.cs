@@ -53,7 +53,7 @@ namespace HeavyHorde
         internal static void Bind(ConfigFile c)
         {
             Enabled = c.Bind("General", "Enabled", true, "Turn the whole mod on or off. Only the host's (or single player's) settings matter: the host spawns the zombies and owns their health.");
-            DumpZombieSprites = c.Bind("Debug", "DumpZombieSprites", true, "Save the body sprites of the first 3 zombies each session to BepInEx\\HeavyHorde.sprites (used to fit the Charger's armour art). Turn off when not needed.");
+            DumpZombieSprites = c.Bind("Debug", "DumpZombieSprites", false, "Save the body sprites of the first 3 zombies each session to BepInEx\\HeavyHorde.sprites (used to fit the Charger's armour art). Turn off when not needed.");
             VerboseLog = c.Bind("General", "VerboseLog", false, "Log every elite roll and ambush in BepInEx\\HeavyHorde.log.");
 
             // ---- Mutated: common, tougher than normal, still one bolt
