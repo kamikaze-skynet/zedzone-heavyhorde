@@ -29,11 +29,15 @@ namespace HeavyHorde
             public float DashStart;
             public bool HitPlayer;
             public readonly List<(SpriteRenderer src, SpriteRenderer ov, Vector3 center)> Plates = new List<(SpriteRenderer, SpriteRenderer, Vector3)>();
+            public readonly List<(SpriteRenderer sr, Sprite mine)> Body = new List<(SpriteRenderer, Sprite)>();
+            public readonly List<SpriteRenderer> Hidden = new List<SpriteRenderer>();
         }
 
         static readonly Dictionary<IntPtr, State> _live = new Dictionary<IntPtr, State>();
         static readonly List<IntPtr> _dead = new List<IntPtr>();
         static Sprite _helmet, _chest, _pauldron, _bracer, _greave;
+        static readonly Dictionary<string, (int w, int h, Color32[] px)> _bodyArt = new Dictionary<string, (int, int, Color32[])>();
+        static readonly Dictionary<string, Sprite> _bodyCache = new Dictionary<string, Sprite>();
         static bool _artTried;
 
         internal static bool Is(BasicCharacterController c) => c != null && _live.ContainsKey(c.Pointer);
@@ -149,21 +153,34 @@ namespace HeavyHorde
             _greave = Load("charger_greave");
         }
 
+        static bool ReadRaw(string name, out int w, out int h, out Color32[] px)
+        {
+            w = h = 0; px = null;
+            using var st = typeof(Charger).Assembly.GetManifestResourceStream("HeavyHorde.Art." + name + ".rgba");
+            if (st == null) { HLog.Warn("Missing art " + name); return false; }
+            using var br = new BinaryReader(st);
+            w = br.ReadInt32(); h = br.ReadInt32();
+            byte[] b = br.ReadBytes(w * h * 4);
+            px = new Color32[w * h];
+            for (int i = 0; i < px.Length; i++) px[i] = new Color32(b[i * 4], b[i * 4 + 1], b[i * 4 + 2], b[i * 4 + 3]);
+            return true;
+        }
+
+        static Texture2D MakeTex(int w, int h, Color32[] px, string name)
+        {
+            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp, name = name };
+            tex.SetPixels32(new Il2CppStructArray<Color32>(px));
+            tex.Apply(false, false);
+            tex.hideFlags = HideFlags.HideAndDontSave;
+            return tex;
+        }
+
         static Sprite Load(string name)
         {
             try
             {
-                using var st = typeof(Charger).Assembly.GetManifestResourceStream("HeavyHorde.Art." + name + ".rgba");
-                if (st == null) { HLog.Warn("Missing art " + name); return null; }
-                using var br = new BinaryReader(st);
-                int w = br.ReadInt32(), h = br.ReadInt32();
-                byte[] b = br.ReadBytes(w * h * 4);
-                var px = new Color32[w * h];
-                for (int i = 0; i < px.Length; i++) px[i] = new Color32(b[i * 4], b[i * 4 + 1], b[i * 4 + 2], b[i * 4 + 3]);
-                var tex = new Texture2D(w, h, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp, name = "HH_" + name };
-                tex.SetPixels32(new Il2CppStructArray<Color32>(px));
-                tex.Apply(false, false);
-                tex.hideFlags = HideFlags.HideAndDontSave;
+                if (!ReadRaw(name, out int w, out int h, out var px)) return null;
+                var tex = MakeTex(w, h, px, "HH_" + name);
                 var s = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, Vector4.zero);
                 s.hideFlags = HideFlags.HideAndDontSave;
                 s.name = "HH_" + name;
@@ -177,6 +194,7 @@ namespace HeavyHorde
             if (!Settings.ChargerArmorArt.Value) return;
             LoadArt();
             var z = s.Z;
+            if (Settings.ChargerCustomBody.Value) BuildBody(s);
             Add(s, z.headSR, _helmet, 1.08f, true);
             Add(s, z.torseSR, _chest, 0.92f, false);
             Add(s, z.arm1_1SR, _pauldron, 1.0f, false);
@@ -220,8 +238,119 @@ namespace HeavyHorde
             s.Plates.Add((src, ov, new Vector3(b.center.x, b.center.y, 0f)));
         }
 
+        // ---- the Charger's own body: our skin parts replace the zombie's, clothes/hair/hands are hidden
+        static void BuildBody(State s)
+        {
+            var z = s.Z;
+            var named = new HashSet<IntPtr>();
+            void Swap(SpriteRenderer sr, string art, bool limb)
+            {
+                if (sr == null) return;
+                named.Add(sr.Pointer);
+                var mine = BodySprite(sr.sprite, art, limb);
+                if (mine == null) return;
+                sr.sprite = mine;
+                sr.color = Color.white;
+                s.Body.Add((sr, mine));
+            }
+            if (z.headSR != null) named.Add(z.headSR.Pointer);
+            Swap(z.torseSR, "charger_body_torso", false);
+            Swap(z.arm1_1SR, "charger_body_upperarm", true);
+            Swap(z.arm2_1SR, "charger_body_upperarm", true);
+            Swap(z.arm1_2SR, "charger_body_forearm", true);
+            Swap(z.arm2_2SR, "charger_body_forearm", true);
+            Swap(z.leg1_1SR, "charger_body_thigh", true);
+            Swap(z.leg2_1SR, "charger_body_thigh", true);
+            Swap(z.leg1_2SR, "charger_body_shin", true);
+            Swap(z.leg2_2SR, "charger_body_shin", true);
+            Swap(z.foot1SR, "charger_body_foot", false);
+            Swap(z.foot2SR, "charger_body_foot", false);
+            try
+            {
+                foreach (var sr in z.GetComponentsInChildren<SpriteRenderer>(true))
+                {
+                    if (sr == null || named.Contains(sr.Pointer) || sr.name.StartsWith("HH_")) continue;
+                    if (sr.sprite == null) continue;
+                    if (IsUnder(sr.transform, z.headSR)) continue;   // keep the face/hair under the helmet as the game has it
+                    sr.enabled = false;
+                    s.Hidden.Add(sr);
+                }
+            }
+            catch (Exception e) { HLog.Debug("Hiding clothes failed: " + e.Message); }
+            HLog.Debug($"Charger body: {s.Body.Count} parts swapped, {s.Hidden.Count} renderers hidden");
+        }
+
+        static bool IsUnder(Transform t, SpriteRenderer head)
+        {
+            if (head == null) return false;
+            var h = head.transform;
+            for (var c = t; c != null; c = c.parent) if (c.Pointer == h.Pointer) return true;
+            return false;
+        }
+
+        // Builds our part sprite matching the game's part: same world size along its long side,
+        // same pivot. Our art is drawn upright with the joint at the top; it is turned to lie
+        // along the game sprite's long side, with the joint at the pivot's end.
+        static Sprite BodySprite(Sprite orig, string art, bool limb)
+        {
+            if (orig == null) return null;
+            Rect r = orig.rect;
+            if (r.width < 1 || r.height < 1) return null;
+            Vector2 piv = orig.pivot;  // pixels from the bottom left
+            bool horiz = r.width > r.height * 1.15f;
+            int turn = 0; bool flipV = false;   // turn: 0 = none, 1 = joint left, 2 = joint right
+            if (horiz && limb) turn = piv.x < r.width * 0.5f ? 1 : 2;
+            else if (limb && piv.y < r.height * 0.5f) flipV = true;
+            string key = $"{art}|{turn}|{flipV}|{r.width:0}x{r.height:0}|{piv.x:0},{piv.y:0}|{orig.pixelsPerUnit:0.##}";
+            if (_bodyCache.TryGetValue(key, out var cached) && cached != null) return cached;
+
+            if (!_bodyArt.TryGetValue(art, out var a))
+            {
+                if (!ReadRaw(art, out int w0, out int h0, out var px0)) return null;
+                a = (w0, h0, px0); _bodyArt[art] = a;
+            }
+            int w = a.w, h = a.h; var src = a.px; Color32[] px;
+            if (turn == 0)
+            {
+                px = new Color32[w * h];
+                for (int y = 0; y < h; y++) for (int x = 0; x < w; x++)
+                    px[y * w + x] = src[(flipV ? h - 1 - y : y) * w + x];
+            }
+            else
+            {
+                // rotate 90 degrees: our top (row h-1 in bottom-up storage) goes to the left (turn 1) or right (turn 2)
+                int nw = h, nh = w; px = new Color32[nw * nh];
+                for (int y = 0; y < h; y++) for (int x = 0; x < w; x++)
+                {
+                    int nx = turn == 1 ? (h - 1 - y) : y;
+                    int ny = turn == 1 ? x : (w - 1 - x);
+                    px[ny * nw + nx] = src[y * w + x];
+                }
+                w = nw; h = nh;
+            }
+            float origLong = Mathf.Max(r.width, r.height) / orig.pixelsPerUnit;  // world units
+            float ppu = Mathf.Max(w, h) / Mathf.Max(origLong, 0.0001f);
+            var tex = MakeTex(w, h, px, "HH_" + art);
+            var pivot = new Vector2(Mathf.Clamp01(piv.x / r.width), Mathf.Clamp01(piv.y / r.height));
+            var sp = Sprite.Create(tex, new Rect(0, 0, w, h), pivot, ppu, 0, SpriteMeshType.FullRect, Vector4.zero);
+            sp.hideFlags = HideFlags.HideAndDontSave;
+            sp.name = "HH_" + art;
+            _bodyCache[key] = sp;
+            return sp;
+        }
+
         static void SyncPlates(State s)
         {
+            // the game swaps in damaged copies of part sprites when hit, and re-shows clothes; keep ours
+            bool dead = false;
+            try { dead = s.Z.deadFlag; } catch { }
+            if (!dead)
+            foreach (var (sr, mine) in s.Body)
+                if (sr != null && !sr.WasCollected && mine != null && sr.sprite != null && sr.sprite.Pointer != mine.Pointer) sr.sprite = mine;
+            if (!dead)
+            foreach (var sr in s.Hidden)
+                if (sr != null && !sr.WasCollected && sr.enabled) sr.enabled = false;
+
             foreach (var (src, ov, center) in s.Plates)
             {
                 if (ov == null || ov.WasCollected) continue;

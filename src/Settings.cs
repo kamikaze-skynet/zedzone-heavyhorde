@@ -39,7 +39,7 @@ namespace HeavyHorde
 
         internal static TierSettings ChargerTier = new TierSettings();
         internal static ConfigEntry<float> ChargerFrontDamageTaken, ChargerFrontArc, ChargerDashSpeed, ChargerDashDuration, ChargerDashRange, ChargerStumbleSeconds;
-        internal static ConfigEntry<bool> ChargerArmorArt, ChargerArmorUseGameMaterial;
+        internal static ConfigEntry<bool> ChargerArmorArt, ChargerArmorUseGameMaterial, ChargerCustomBody;
 
         internal static ConfigEntry<bool> Hunts;
         internal static ConfigEntry<float> HuntIntervalMinutes;
@@ -80,6 +80,7 @@ namespace HeavyHorde
             ChargerDashRange = c.Bind("Charger", "DashRangeMultiplier", 1.5f, R("How far away it starts a charge, compared with the game's mutant dash.", 0.2f, 5));
             ChargerStumbleSeconds = c.Bind("Charger", "StumbleSeconds", 2.5f, R("Seconds it lies on the ground after a charge that hit no player. 0 = never stumbles.", 0, 10));
             ChargerArmorArt = c.Bind("Charger", "ArmorArt", true, "Draw the armour plates on its body.");
+            ChargerCustomBody = c.Bind("Charger", "CustomBody", true, "Give it its own hulking grey body (our art) instead of the zombie's clothes and skin. Off = armour over the normal zombie.");
             ChargerArmorUseGameMaterial = c.Bind("Charger", "ArmorUsesGameLighting", true, "Draw the plates with the body part's own material (follows the game's lighting). Turn off if the plates look wrong.");
 
             AmbushEliteBonus = c.Bind("Elites", "AmbushEliteBonus", 2f, R("Elite chances are multiplied by this for zombies that arrive in ambushes and hunts.", 0, 20));
