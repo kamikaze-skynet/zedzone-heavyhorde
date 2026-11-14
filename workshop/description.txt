@@ -1,0 +1,23 @@
+[h1]Heavy Horde[/h1]
+More zombies, and tougher ones. Made so fights stay dangerous even with the Boltgun.
+
+[h2]Tougher zombies[/h2]
+[list]
+[*][b]Mutated[/b] (15%): glowing mutants with more health, armour, harder hits and a bit more speed.
+[*][b]Brute[/b] (5%): heavy mutants that regenerate and keep their limbs. One hit can only take 40% of their health, so even a Boltgun needs about 3 bolts.
+[*][b]Behemoth[/b] (1%): giants with a boss health bar. About 7 Boltgun bolts.
+[/list]
+
+[h2]More zombies[/h2]
+[list]
+[*]Bigger zombie groups in newly explored areas.
+[*]The game's own ambushes come more often, twice as big, and more often with the toughest zombies around.
+[*]Hunts: an extra ambush every few minutes.
+[/list]
+
+Everything is adjustable in BepInEx\config\girthy_mods.zedzone.heavyhorde.cfg.
+
+[h2]Co-op[/h2]
+Works when the host has it: the host spawns the zombies and owns their health, and guests see the same variants. Install it on every PC anyway.
+
+Requires BepInEx (IL2CPP), like other ZED ZONE code mods.
