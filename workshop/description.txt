@@ -24,3 +24,6 @@ Everything is adjustable in BepInEx\config\girthy_mods.zedzone.heavyhorde.cfg.
 Works when the host has it: the host spawns the zombies and owns their health, and guests see the same variants. Install it on every PC anyway.
 
 Requires BepInEx (IL2CPP), like other ZED ZONE code mods.
+
+[h2]Settings and keys: Mod Menu[/h2]
+Press [b]F11[/b] in game to open [b]Mod Menu[/b] (Steam installs it with this mod) to change this mod's settings without editing files.
