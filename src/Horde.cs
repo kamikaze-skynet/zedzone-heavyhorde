@@ -86,12 +86,14 @@ namespace HeavyHorde
             try
             {
                 InHunt = true;
+                Elites.AmbushSpawned = Elites.AmbushElites = 0;
                 ok = dir.ExecuteZombieAmbush(dir.GetPlayerChunkType(), min, max, Settings.HuntPreferTough.Value);
             }
             catch (Exception e) { HLog.Error("Hunt failed", e); }
             finally { InHunt = false; }
 
-            HLog.Info(ok ? $"Hunt: {min}-{max} zombies are coming." : "Hunt: no spot to spawn from, trying again in 30 s.");
+            HLog.Info(ok ? $"Hunt: {Elites.AmbushSpawned} zombies spawned ({Elites.AmbushElites} elite), asked for {min}-{max}."
+                         : "Hunt: no spot to spawn from, trying again in 30 s.");
             _nextHunt = now + (ok ? interval : 30f);
         }
 
@@ -102,7 +104,10 @@ namespace HeavyHorde
         internal static void BeforeAmbush(ref int minCount, ref int maxCount, ref bool preferTough)
         {
             Elites.AmbushDepth++;
-            if (!Settings.Enabled.Value || InHunt) return;
+            if (InHunt) return;
+            Elites.AmbushSpawned = Elites.AmbushElites = 0;
+            _directorAmbush = true;
+            if (!Settings.Enabled.Value) return;
             float m = Settings.AmbushSizeMultiplier.Value;
             int oldMin = minCount, oldMax = maxCount;
             minCount = Math.Max(1, Mathf.RoundToInt(minCount * m));
@@ -111,6 +116,17 @@ namespace HeavyHorde
             HLog.Debug($"Ambush {oldMin}-{oldMax} -> {minCount}-{maxCount}{(preferTough ? ", toughest type" : "")}");
         }
 
-        internal static void AfterAmbush() { if (Elites.AmbushDepth > 0) Elites.AmbushDepth--; }
+        static bool _directorAmbush;
+
+        internal static void AfterAmbush()
+        {
+            if (Elites.AmbushDepth > 0) Elites.AmbushDepth--;
+            if (_directorAmbush && Elites.AmbushDepth == 0)
+            {
+                _directorAmbush = false;
+                if (Elites.AmbushSpawned > 0)
+                    HLog.Info($"Game ambush: {Elites.AmbushSpawned} zombies spawned ({Elites.AmbushElites} elite).");
+            }
+        }
     }
 }

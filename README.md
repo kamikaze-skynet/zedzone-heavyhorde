@@ -39,7 +39,7 @@ Only the host needs the mod for it to work: the host spawns zombies and owns the
 
 ## Install
 
-Copy `HeavyHorde.dll` and `mod.json` into `ZED ZONE\Mods\HeavyHorde\`, or subscribe on the Steam Workshop. The log is `BepInEx\HeavyHorde.log` (turn on `VerboseLog` to see every elite and ambush).
+Copy `HeavyHorde.dll` and `mod.json` into `ZED ZONE\Mods\HeavyHorde\`, or subscribe on the Steam Workshop. The log is `BepInEx\HeavyHorde.log` : it lists every elite and Charger that spawns, what each hunt and ambush brought, and a status line every 2 minutes (`VerboseLog` adds more detail).
 
 ## Build
 

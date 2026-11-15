@@ -11,7 +11,7 @@ namespace HeavyHorde
     public class Plugin : BasePlugin
     {
         public const string Guid = "girthy_mods.zedzone.heavyhorde";
-        public const string Version = "0.2.0";
+        public const string Version = "0.2.1";
 
         public override void Load()
         {
@@ -40,6 +40,20 @@ namespace HeavyHorde
     {
         public HordeBehaviour(IntPtr ptr) : base(ptr) { }
         float _next, _nextStats;
+        int _lastSeen;
+
+        // Every 2 minutes in game, so the log always shows whether zombies are being seen and rolled.
+        void Summary()
+        {
+            bool host = ZedZone.Net.NetSim.isSimulationAuthority;
+            int newSeen = Elites.Seen - _lastSeen;
+            _lastSeen = Elites.Seen;
+            string role = host ? "host/single player" : "guest (the host's Heavy Horde decides elites)";
+            HLog.Info($"Status ({role}): {newSeen} zombies spawned in the last 2 min. Totals: {Elites.Seen} zombies, {Elites.SeenInAmbush} from ambushes/hunts, " +
+                      $"{Elites.MadeMutated} Mutated, {Elites.MadeBrute} Brutes, {Elites.MadeBehemoth} Behemoths, {Elites.MadeCharger} Chargers; " +
+                      $"{Elites.Reloaded} reloaded, {Elites.SkippedGameSpecial} already special.");
+        }
+
 
         void LateUpdate()
         {
@@ -57,9 +71,9 @@ namespace HeavyHorde
 
             if (Time.unscaledTime > _nextStats)
             {
-                _nextStats = Time.unscaledTime + 300f;
-                if (Elites.Rolled > 0)
-                    HLog.Info($"So far: {Elites.Rolled} zombies rolled, {Elites.MadeMutated} Mutated, {Elites.MadeBrute} Brutes, {Elites.MadeBehemoth} Behemoths, {Elites.MadeCharger} Chargers.");
+                bool first = _nextStats == 0f;
+                _nextStats = Time.unscaledTime + 120f;
+                if (!first && InGameController.instance != null) Summary();
             }
         }
     }
