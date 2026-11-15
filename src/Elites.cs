@@ -37,6 +37,11 @@ namespace HeavyHorde
 
         static readonly System.Random _rng = new System.Random();
         internal static int Rolled, MadeMutated, MadeBrute, MadeBehemoth, MadeCharger;
+        // Diagnostics for the periodic summary in HeavyHorde.log.
+        internal static int Seen, SeenInAmbush, SkippedGameSpecial, SkippedNoData, Reloaded;
+        // Rolls made inside the current ambush/hunt call.
+        internal static int AmbushSpawned, AmbushElites;
+        static IntPtr _lastPtr; static int _lastFrame = -1;
 
         internal static Tier TierOf(BasicCharacterController c)
         {
@@ -53,24 +58,36 @@ namespace HeavyHorde
             _ => null,
         };
 
-        // Prefix on BasicCharacterController.Init.
+        // Prefix on ZombieController.Init and BasicCharacterController.Init (the zombie one
+        // calls the base one, so the second call in the same frame is skipped).
+        //
+        // Note: the base Init looks up monsterAttr itself (MonsterManager.GetMonsterAttrById),
+        // after it applies the mutation/elite properties. So on a fresh zombie monsterAttr is
+        // still empty here and we look it up ourselves from CharacterData.characterAttrId.
         internal static void BeforeInit(BasicCharacterController c)
         {
             if (c == null) return;
+            int frame = Time.frameCount;
+            if (c.Pointer == _lastPtr && frame == _lastFrame) return;
+            _lastPtr = c.Pointer; _lastFrame = frame;
+
             _tiers.Remove(c.Pointer);
             Charger.Forget(c.Pointer);
             if (!Settings.Enabled.Value) return;
             if (c.isPlayer) return;
-            if (c.TryCast<ZombieController>() == null) return;  // only infected; no bosses, animals, people or pets
-            var attr = c.monsterAttr;
-            if (attr == null || attr.isAnimal || attr.monsterSpeciesType != MonsterSpeciesType.Zombie) return;
+            var z = c.TryCast<ZombieController>();
+            if (z == null) return;  // only infected; no animals, people or pets
             var cd = c.characterData;
-            if (cd == null) return;
-            SpriteDump.Queue(c.TryCast<ZombieController>());
+            if (cd == null) { SkippedNoData++; return; }
+            var attr = AttrOf(c, cd);
+            if (attr != null && (attr.isAnimal || attr.monsterSpeciesType != MonsterSpeciesType.Zombie)) return;
+            Seen++;
+            if (AmbushDepth > 0) SeenInAmbush++;
+            SpriteDump.Queue(z);
 
             string mine = cd.GetProperty(Key);
-            if (string.IsNullOrEmpty(mine) && NetSim.isSimulationAuthority)
-                mine = Roll(c, cd, attr);
+            if (!string.IsNullOrEmpty(mine)) Reloaded++;
+            else if (NetSim.isSimulationAuthority) mine = Roll(c, cd, attr);
 
             if (!string.IsNullOrEmpty(mine) && int.TryParse(mine, out int t) && t > 0 && t <= 4)
             {
@@ -79,13 +96,25 @@ namespace HeavyHorde
             }
         }
 
+        static MonsterAttr AttrOf(BasicCharacterController c, CharacterData cd)
+        {
+            var a = c.monsterAttr;
+            if (a != null) return a;
+            try { return MonsterManager.instance?.GetMonsterAttrById(cd.characterAttrId); }
+            catch { return null; }
+        }
+
+        static string NameOf(MonsterAttr a) => a != null ? a.monsterName_English : "zombie";
+
         static string Roll(BasicCharacterController c, CharacterData cd, MonsterAttr attr)
         {
             Rolled++;
+            if (AmbushDepth > 0) AmbushSpawned++;
             // Leave zombies the game already made special (radiation mutants, horde-mode elites) alone.
             if (!string.IsNullOrEmpty(cd.GetProperty(NuclearMutation.PropertyKey)) ||
                 !string.IsNullOrEmpty(cd.GetProperty(HordeElite.PropertyKey)))
             {
+                SkippedGameSpecial++;
                 cd.SetProperty(Key, "0");
                 return "0";
             }
@@ -114,14 +143,17 @@ namespace HeavyHorde
             }
             catch (Exception e)
             {
-                HLog.Error($"Couldn't make a {tier} out of {attr.monsterName_English}", e);
+                HLog.Error($"Couldn't make a {tier} out of {NameOf(attr)}", e);
                 tier = Tier.None;
             }
 
             string v = ((int)tier).ToString(CultureInfo.InvariantCulture);
             cd.SetProperty(Key, v);
             if (tier != Tier.None)
-                HLog.Debug($"{tier} {attr.monsterName_English} (id {attr.monsterId}){(AmbushDepth > 0 ? " from an ambush" : "")} at {(Vector2)c.transform.position}");
+            {
+                if (AmbushDepth > 0) AmbushElites++;
+                HLog.Info($"Spawned a {tier} ({NameOf(attr)}){(AmbushDepth > 0 ? " in an ambush" : "")} at {(Vector2)c.transform.position}, {DistanceToPlayer(c)}");
+            }
             return v;
         }
 
@@ -155,6 +187,18 @@ namespace HeavyHorde
                 s.Damage.Value.ToString("0.###", ci),
                 "0");
             cd.SetProperty(HordeElite.PropertyKey, v);
+        }
+
+        static string DistanceToPlayer(BasicCharacterController c)
+        {
+            try
+            {
+                var p = GameController.instance?.playerCharacter;
+                if (p == null) return "player position unknown";
+                float d = Vector2.Distance(c.transform.position, p.transform.position);
+                return $"{d:0} m from you";
+            }
+            catch { return "player position unknown"; }
         }
 
         internal static void Forget(IntPtr p) => _tiers.Remove(p);

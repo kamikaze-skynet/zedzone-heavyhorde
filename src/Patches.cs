@@ -8,6 +8,7 @@ namespace HeavyHorde
     {
         internal static void Apply(Harmony h)
         {
+            Patch(h, typeof(ZombieController), nameof(ZombieController.Init), nameof(Init_Pre));
             Patch(h, typeof(BasicCharacterController), nameof(BasicCharacterController.Init), nameof(Init_Pre));
             Patch(h, typeof(BasicCharacterController), nameof(BasicCharacterController.OnHit), nameof(OnHit_Pre));
             Patch(h, typeof(ZombieController), nameof(ZombieController.OnExplosionDismember), nameof(ExplosionDismember_Pre));
@@ -15,22 +16,26 @@ namespace HeavyHorde
             Patch(h, typeof(ZombieController), nameof(ZombieController.MutationDashAttack), nameof(Dash_Pre));
             Patch(h, typeof(ZombieController), nameof(ZombieController.ExecuteDashContactDamage), null, postfix: nameof(DashContact_Post));
             Patch(h, typeof(DirectorController), nameof(DirectorController.ExecuteZombieAmbush), nameof(Ambush_Pre), finalizer: nameof(Ambush_Fin));
+            HLog.Info($"Hooked {_ok} of {_ok + _failed} game methods{(_failed > 0 ? " (see the warnings above for what is off)" : "")}.");
         }
+
+        static int _ok, _failed;
 
         static void Patch(Harmony h, Type t, string method, string prefix, string finalizer = null, string postfix = null)
         {
             try
             {
                 var target = AccessTools.Method(t, method);
-                if (target == null) { HLog.Warn($"{t.Name}.{method} not found - that part of the mod is off."); return; }
+                if (target == null) { _failed++; HLog.Warn($"{t.Name}.{method} not found - that part of the mod is off."); return; }
                 var self = typeof(Patches);
                 h.Patch(target,
                     prefix: prefix == null ? null : new HarmonyMethod(self.GetMethod(prefix, BindingFlags.Static | BindingFlags.NonPublic)),
                     postfix: postfix == null ? null : new HarmonyMethod(self.GetMethod(postfix, BindingFlags.Static | BindingFlags.NonPublic)),
                     finalizer: finalizer == null ? null : new HarmonyMethod(self.GetMethod(finalizer, BindingFlags.Static | BindingFlags.NonPublic)));
+                _ok++;
                 HLog.Debug($"Patched {t.Name}.{method}");
             }
-            catch (Exception e) { HLog.Error($"Couldn't patch {t.Name}.{method}", e); }
+            catch (Exception e) { _failed++; HLog.Error($"Couldn't patch {t.Name}.{method}", e); }
         }
 
         static void Init_Pre(BasicCharacterController __instance)
