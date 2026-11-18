@@ -2,6 +2,11 @@
 
 A ZED ZONE mod (BepInEx IL2CPP) that adds more zombies and tougher ones, so fights stay dangerous even with the Boltgun.
 
+## Requires
+
+- ZED ZONE (Windows, Steam)
+- [ZED ZONE Code Mod Loader](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258) - run its install.cmd once, then start the game through Steam.
+
 ## What it does
 
 **Tougher zombies.** When a zombie spawns, it can roll as one of three variants:
