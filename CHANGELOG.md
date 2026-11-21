@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.2
+- Works with ZED ZONE 1.0.21 (November 20). The game added a new setting to its zombie ambush code, so Heavy Horde's timed hunts stopped working with the old build. Rebuilt for the new game code.
+
 ## 0.2.1
 - Fix: no elites or Chargers were ever made. The roll ran before the game had looked up the zombie's type, so every zombie was skipped. It now looks the type up itself.
 - Clearer HeavyHorde.log: one line for every elite or Charger that spawns (type, place, distance from you), how many zombies each hunt and game ambush really spawned, how many game hooks loaded, and a status line every 2 minutes with totals.

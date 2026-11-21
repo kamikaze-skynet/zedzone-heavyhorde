@@ -11,7 +11,7 @@ namespace HeavyHorde
     public class Plugin : BasePlugin
     {
         public const string Guid = "girthy_mods.zedzone.heavyhorde";
-        public const string Version = "0.2.1";
+        public const string Version = "0.2.2";
 
         public override void Load()
         {
